@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RECODE CRM</title>
+<style>
+:root{
+  --bg:#0f1117; --panel:#181b25; --panel2:#1f2330; --border:#2a2f40;
+  --txt:#e8eaf2; --muted:#8b91a7; --accent:#8b5cf6; --accent2:#6d28d9;
+  --chaud:#ef4444; --tiede:#f59e0b; --froid:#3b82f6;
+  --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px}
+header{display:flex;align-items:center;gap:16px;padding:14px 22px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:50}
+.logo{font-weight:800;font-size:17px;letter-spacing:1px}
+.logo span{color:var(--accent)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:none;color:var(--muted);padding:8px 13px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:600;position:relative}
+nav button:hover{color:var(--txt)}
+nav button.active{background:var(--accent2);color:#fff}
+.badge-n{background:var(--bad);color:#fff;border-radius:9px;font-size:10.5px;padding:1px 6px;margin-left:5px;font-weight:700}
+.spacer{flex:1}
+.hbtn{background:var(--panel2);border:1px solid var(--border);color:var(--txt);padding:8px 13px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+.hbtn:hover{border-color:var(--accent)}
+.hbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+main{padding:20px 22px;max-width:1340px;margin:0 auto}
+h2{font-size:18px;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.banner{background:#3b2a08;border:1px solid #7c5e0e;color:#fcd34d;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13px}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:800;margin:2px 0}
+.kpi .l{color:var(--muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.kpi .d{font-size:11.5px;color:var(--muted)}
+.kpi.alert .v{color:var(--bad)}
+.grid2{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-bottom:20px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:var(--txt)}
+.fun-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.fun-row .fl{width:120px;font-size:12.5px;color:var(--muted)}
+.fun-bar{flex:1;background:var(--panel2);border-radius:6px;height:22px;position:relative;overflow:hidden}
+.fun-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:6px}
+.fun-row .fv{width:30px;text-align:right;font-weight:700;font-size:13px}
+.src-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.src-row:last-child{border:none}
+/* chips */
+.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--panel2);color:var(--muted)}
+.chip.src{background:#1e2a45;color:#93b4f5}
+.temp-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.t-chaud{background:var(--chaud)} .t-tiede{background:var(--tiede)} .t-froid{background:var(--froid)}
+/* relances */
+.rel-group{margin-bottom:22px}
+.rel-group h3{font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.rel-group.late h3{color:var(--bad)} .rel-group.today h3{color:var(--warn)} .rel-group.soon h3{color:var(--txt)} .rel-group.later h3{color:var(--muted)}
+.rel-card{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;flex-wrap:wrap}
+.rel-card .who{font-weight:700;cursor:pointer;min-width:140px}
+.rel-card .who:hover{color:var(--accent)}
+.rel-card .note{flex:1;color:var(--muted);font-size:13px;min-width:160px}
+.rel-card .when{font-size:12.5px;font-weight:600;color:var(--warn)}
+.mini{background:var(--panel2);border:1px solid var(--border);color:var(--txt);padding:5px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600}
+.mini:hover{border-color:var(--accent)}
+.mini.done{color:var(--ok)}
+/* kanban */
+.kanban{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px;align-items:flex-start}
+.kcol{background:var(--panel);border:1px solid var(--border);border-radius:12px;min-width:215px;width:215px;flex-shrink:0}
+.kcol h3{padding:11px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+.kcol.drop-over{border-color:var(--accent)}
+.kcards{padding:8px;min-height:60px}
+.kcard{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:7px;cursor:grab}
+.kcard:hover{border-color:var(--accent)}
+.kcard .nm{font-weight:700;font-size:13px;margin-bottom:3px}
+.kcard .meta{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.kcard .late{color:var(--bad);font-size:11px;font-weight:700}
+/* table */
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar input,.toolbar select{background:var(--panel);border:1px solid var(--border);color:var(--txt);padding:8px 11px;border-radius:8px;font-size:13px}
+.toolbar input{flex:1;min-width:170px}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px}
+tr:last-child td{border-bottom:none}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel2)}
+/* clientes */
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:24px}
+.cl-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:15px}
+.cl-card .nm{font-weight:800;font-size:15px;cursor:pointer}
+.cl-card .nm:hover{color:var(--accent)}
+.cl-card .of{font-size:12px;color:var(--muted);margin:3px 0 10px}
+.phasebar{display:flex;gap:4px;margin:8px 0}
+.phasebar i{flex:1;height:7px;border-radius:4px;background:var(--panel2)}
+.phasebar i.on{background:var(--accent)}
+.cl-alert{margin-top:9px;font-size:12px;font-weight:600;padding:6px 9px;border-radius:7px}
+.cl-alert.m10{background:#3b2a08;color:#fcd34d}
+.cl-alert.m12{background:#1a3329;color:#6ee7b7}
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;z-index:100;overflow-y:auto;padding:30px 14px}
+.overlay.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;width:100%;max-width:680px;padding:22px}
+.modal h2{margin-bottom:16px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+@media(max-width:600px){.frow,.frow3{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.fg input,.fg select,.fg textarea{background:var(--panel2);border:1px solid var(--border);color:var(--txt);padding:8px 10px;border-radius:8px;font-size:13.5px;width:100%}
+.fg textarea{resize:vertical;min-height:54px}
+.mact{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.danger{background:none;border:1px solid var(--bad);color:var(--bad);padding:8px 13px;border-radius:8px;cursor:pointer;font-size:13px}
+.hist{margin-top:20px;border-top:1px solid var(--border);padding-top:14px}
+.hist h3{font-size:13px;margin-bottom:10px}
+.hitem{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.hitem .hd{color:var(--muted);min-width:78px;font-size:12px}
+.hitem .ht{font-weight:700;min-width:80px}
+.haddrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.haddrow select{width:130px}
+.haddrow input{flex:1;min-width:150px}
+.empty{color:var(--muted);text-align:center;padding:34px;font-size:13.5px}
+.hidden{display:none}
+.note-v3{font-size:11.5px;color:var(--muted);margin-top:6px;font-style:italic}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">RECODE <span>CRM</span></div>
+  <nav id="nav">
+    <button data-v="dash" class="active">Dashboard</button>
+    <button data-v="rel">À relancer<span class="badge-n hidden" id="relBadge">0</span></button>
+    <button data-v="pipe">Pipeline</button>
+    <button data-v="contacts">Contacts</button>
+    <button data-v="clientes">Clientes</button>
+  </nav>
+  <div class="spacer"></div>
+  <button class="hbtn" onclick="exportJSON()">⬇ Export</button>
+  <button class="hbtn" onclick="document.getElementById('importFile').click()">⬆ Import</button>
+  <input type="file" id="importFile" accept=".json" class="hidden" onchange="importJSON(event)">
+  <button class="hbtn primary" onclick="openModal()">＋ Nouveau contact</button>
+</header>
+<main>
+  <div id="backupBanner" class="banner hidden"></div>
+  <section id="v-dash"></section>
+  <section id="v-rel" class="hidden"></section>
+  <section id="v-pipe" class="hidden"></section>
+  <section id="v-contacts" class="hidden"></section>
+  <section id="v-clientes" class="hidden"></section>
+</main>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="mTitle">Nouveau contact</h2>
+    <div class="frow">
+      <div class="fg"><label>Prénom / Nom *</label><input id="f-nom"></div>
+      <div class="fg"><label>Instagram</label><input id="f-ig" placeholder="@pseudo"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>WhatsApp / Tél</label><input id="f-wa"></div>
+      <div class="fg"><label>Email</label><input id="f-email"></div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label>Statut</label>
+        <select id="f-statut">
+          <option value="prospect">Prospect</option>
+          <option value="cliente">Cliente active</option>
+          <option value="alumni">Alumni (Continuité)</option>
+          <option value="perdue">Perdue</option>
+          <option value="horscible">Hors cible (redirigée)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Source</label>
+        <select id="f-source">
+          <option>Démarchage Instagram</option>
+          <option>MP entrant Instagram</option>
+          <option>Ressource Instagram</option>
+          <option>Welcome DM</option>
+          <option>Formulaire</option>
+          <option>WhatsApp direct</option>
+          <option>Réactivation ancienne cliente</option>
+          <option>Parrainage</option>
+          <option>Réseau pro</option>
+          <option>Podcast</option>
+          <option>Autre</option>
+        </select>
+      </div>
+      <div class="fg"><label>Température</label>
+        <select id="f-temp">
+          <option value="froid">🔵 Froid</option>
+          <option value="tiede">🟠 Tiède</option>
+          <option value="chaud">🔴 Chaud</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label>Étape pipeline</label>
+        <select id="f-etape">
+          <option value="nouveau">Nouveau</option>
+          <option value="conversation">Conversation</option>
+          <option value="visio_posee">Visio posée</option>
+          <option value="visio_faite">Visio faite</option>
+          <option value="closing">Closing en cours</option>
+          <option value="signee">Signée</option>
+          <option value="perdue">Perdue</option>
+        </select>
+      </div>
+      <div class="fg"><label>Qualification</label>
+        <select id="f-qualif">
+          <option value="aqualifier">À qualifier</option>
+          <option value="qualifiee">Qualifiée (profil 1.5)</option>
+          <option value="horscible">Hors cible</option>
+        </select>
+      </div>
+      <div class="fg"><label>Mot-clé ressource reçu</label>
+        <select id="f-motcle">
+          <option value="">—</option>
+          <option>BILAN</option><option>RECODE</option><option>MINDSET</option>
+          <option>HORMONES</option><option>BINGE</option><option>NUTRITION</option>
+          <option>METHODE</option><option>PLACE</option><option>Autre</option>
+        </select>
+      </div>
+    </div>
+    <div id="clienteFields">
+      <div class="frow3">
+        <div class="fg"><label>Offre</label>
+          <select id="f-offre">
+            <option value="">—</option>
+            <option value="premium">Premium 267 €/mois</option>
+            <option value="starter">Starter 197 €/mois</option>
+            <option value="continuite">Continuité 97 €/mois</option>
+          </select>
+        </div>
+        <div class="fg"><label>Début du coaching</label><input type="date" id="f-debut"></div>
+        <div class="fg"><label>Phase (Premium/Starter)</label>
+          <select id="f-phase">
+            <option value="">—</option>
+            <option value="1">1 · Bilan (M1)</option>
+            <option value="2">2 · Stabilisation (M2-3)</option>
+            <option value="3">3 · Optimisation (M4-7)</option>
+            <option value="4">4 · Autonomie (M8-11)</option>
+            <option value="5">5 · Maîtrise (M12)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Prochaine relance</label><input type="date" id="f-relance"></div>
+      <div class="fg"><label>Note de relance (quoi dire)</label><input id="f-relnote" placeholder="ex : revenir sur sa visio, proposer un point 15 min"></div>
+    </div>
+    <div class="fg" style="margin-bottom:10px"><label>Contexte (sa situation, ses mots exacts, son blocage)</label><textarea id="f-contexte"></textarea></div>
+    <div class="fg"><label>Objection / frein</label><input id="f-objection" placeholder="ex : prix, timing, doit en parler à son conjoint"></div>
+    <div class="note-v3">Rappels V3 : note ses mots exacts (script visio 3.4) · hors cible = rediriger, pas convaincre (1.5) · Continuité jamais proposée avant M10.</div>
+    <div class="hist" id="histBlock">
+      <h3>Historique d'interactions</h3>
+      <div id="histList"></div>
+      <div class="haddrow">
+        <select id="h-type">
+          <option>MP envoyé</option><option>MP reçu</option><option>Vocal</option>
+          <option>Visio</option><option>Relance</option><option>Story / réaction</option><option>Autre</option>
+        </select>
+        <input id="h-note" placeholder="Note courte…">
+        <button class="mini" onclick="addInteraction()">Ajouter</button>
+      </div>
+    </div>
+    <div class="mact">
+      <button class="hbtn primary" onclick="saveContact()">Enregistrer</button>
+      <button class="hbtn" onclick="closeModal()">Annuler</button>
+      <div class="spacer"></div>
+      <button class="danger hidden" id="delBtn" onclick="deleteContact()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const LS_KEY='recode_crm_v1', LS_EXPORT='recode_crm_lastexport';
+const ETAPES=[
+ ['nouveau','Nouveau'],['conversation','Conversation'],['visio_posee','Visio posée'],
+ ['visio_faite','Visio faite'],['closing','Closing'],['signee','Signée'],['perdue','Perdue']
+];
+const PHASES={1:'Bilan',2:'Stabilisation',3:'Optimisation',4:'Autonomie',5:'Maîtrise'};
+const OFFRES={premium:'Premium 267 €',starter:'Starter 197 €',continuite:'Continuité 97 €'};
+let db=load(), editingId=null, draftInteractions=[], view='dash';
+
+function load(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[]}catch(e){return[]}}
+function save(){localStorage.setItem(LS_KEY,JSON.stringify(db));render()}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function today(){return new Date().toISOString().slice(0,10)}
+function fmtD(d){if(!d)return'—';const[y,m,j]=d.split('-');return j+'/'+m+'/'+y}
+function esc(s){return(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function daysDiff(d){return Math.floor((new Date(d)-new Date(today()))/864e5)}
+function monthsSince(d){if(!d)return 0;const a=new Date(d),b=new Date();return Math.max(0,(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth())+(b.getDate()>=a.getDate()?0:-1))+1}
+function expectedPhase(m){if(m<=1)return 1;if(m<=3)return 2;if(m<=7)return 3;if(m<=11)return 4;return 5}
+function tempDot(t){return '<span class="temp-dot t-'+t+'"></span>'}
+function lastContact(c){const ds=(c.interactions||[]).map(i=>i.date).sort();return ds.length?ds[ds.length-1]:c.createdAt}
+
+/* ---------- NAV ---------- */
+document.getElementById('nav').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  view=b.dataset.v;
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x===b));
+  render();
+});
+function show(id){['dash','rel','pipe','contacts','clientes'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==id))}
+
+/* ---------- RENDER ---------- */
+function render(){
+  renderBadge();renderBackupBanner();
+  show(view);
+  if(view==='dash')renderDash();
+  if(view==='rel')renderRel();
+  if(view==='pipe')renderPipe();
+  if(view==='contacts')renderContacts();
+  if(view==='clientes')renderClientes();
+}
+function relancesDues(){return db.filter(c=>c.relanceDate&&daysDiff(c.relanceDate)<=0&&!['perdue','horscible'].includes(c.statut))}
+function renderBadge(){
+  const n=relancesDues().length,b=document.getElementById('relBadge');
+  b.textContent=n;b.classList.toggle('hidden',n===0);
+}
+function renderBackupBanner(){
+  const el=document.getElementById('backupBanner');
+  const last=localStorage.getItem(LS_EXPORT);
+  const days=last?Math.floor((Date.now()-(+last))/864e5):null;
+  if(db.length>0&&(days===null||days>14)){
+    el.textContent='⚠️ '+(days===null?'Aucun export encore fait.':'Dernier export il y a '+days+' jours.')+' Tes données vivent dans ce navigateur : exporte le JSON régulièrement (bouton ⬇ Export).';
+    el.classList.remove('hidden');
+  }else el.classList.add('hidden');
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderDash(){
+  const el=document.getElementById('v-dash');
+  const prospects=db.filter(c=>c.statut==='prospect');
+  const nouveaux7=db.filter(c=>c.createdAt&&daysDiff(c.createdAt)>=-7&&c.statut!=='cliente'&&c.statut!=='alumni').length;
+  const convs=prospects.filter(c=>c.etape==='conversation').length;
+  const visiosEnCours=prospects.filter(c=>['visio_posee','visio_faite','closing'].includes(c.etape)).length;
+  const visios30=db.reduce((n,c)=>n+(c.interactions||[]).filter(i=>i.type==='Visio'&&daysDiff(i.date)>=-30).length,0);
+  const avecVisio=db.filter(c=>(c.interactions||[]).some(i=>i.type==='Visio'));
+  const closDecided=avecVisio.filter(c=>['cliente','alumni','perdue'].includes(c.statut)||['signee','perdue'].includes(c.etape));
+  const signees=closDecided.filter(c=>['cliente','alumni'].includes(c.statut)||c.etape==='signee');
+  const closing=closDecided.length?Math.round(signees.length/closDecided.length*100):null;
+  const actives=db.filter(c=>c.statut==='cliente').length;
+  const alumni=db.filter(c=>c.statut==='alumni').length;
+  const late=relancesDues().length;
+
+  let funnel='';
+  ETAPES.forEach(([k,l])=>{
+    if(k==='perdue')return;
+    const n=db.filter(c=>c.etape===k&&(k==='signee'?true:c.statut==='prospect')).length;
+    const max=Math.max(1,...ETAPES.map(([k2])=>db.filter(c=>c.etape===k2).length));
+    funnel+='<div class="fun-row"><div class="fl">'+l+'</div><div class="fun-bar"><i style="width:'+(n/max*100)+'%"></i></div><div class="fv">'+n+'</div></div>';
+  });
+
+  const srcCount={};
+  db.filter(c=>['cliente','alumni'].includes(c.statut)).forEach(c=>{srcCount[c.source]=(srcCount[c.source]||0)+1});
+  const srcRows=Object.entries(srcCount).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="src-row"><span>'+esc(s)+'</span><b>'+n+'</b></div>').join('')||'<div class="empty">Aucune cliente signée pour l\'instant</div>';
+
+  el.innerHTML=
+  '<h2>Tableau de bord</h2><div class="sub">Les 6 chiffres de la Stratégie V3 — à relever chaque vendredi, 10 min. Optimise l\'étape qui fuit, pas celle qui te stresse.</div>'
+  +'<div class="kpis">'
+  +kpi(nouveaux7,'Nouveaux contacts','7 derniers jours')
+  +kpi(convs,'Conversations ouvertes','étape pipeline')
+  +kpi(visiosEnCours+' / '+visios30,'Visios','en cours / menées 30j')
+  +kpi(closing===null?'—':closing+' %','Taux de closing','cible V3 : 30-40 % — sur '+closDecided.length+' visios décidées')
+  +kpi(actives+(alumni?' +'+alumni:''),'Clientes actives',alumni?alumni+' en Continuité':'Premium + Starter')
+  +kpi(late,'Relances en retard',late>0?'va dans l\'onglet À relancer':'tout est à jour',late>0)
+  +'</div>'
+  +'<div class="grid2"><div class="panel"><h3>Tunnel — où ça fuit ?</h3>'+funnel
+  +'<div class="note-v3">Règle V3 : si les conversations s\'ouvrent mais que les visios ne closent pas, le problème est dans la visio (script 3.4), pas dans le contenu.</div></div>'
+  +'<div class="panel"><h3>Sources des clientes signées</h3>'+srcRows+'</div></div>'
+  +(db.length===0?'<div class="panel"><div class="empty">CRM vide. Commence par la P1 de la semaine 1 : liste tes 30-50 anciennes clientes (source « Réactivation ancienne cliente »).<br><br><button class="hbtn primary" onclick="openModal()">＋ Ajouter le premier contact</button> <button class="hbtn" onclick="seedDemo()">Voir avec des données d\'exemple</button></div></div>':'');
+}
+function kpi(v,l,d,alert){return '<div class="kpi'+(alert?' alert':'')+'"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="d">'+d+'</div></div>'}
+
+/* ---------- RELANCES ---------- */
+function renderRel(){
+  const el=document.getElementById('v-rel');
+  const withRel=db.filter(c=>c.relanceDate&&!['perdue','horscible'].includes(c.statut))
+    .sort((a,b)=>a.relanceDate.localeCompare(b.relanceDate));
+  const groups={late:[],today:[],soon:[],later:[]};
+  withRel.forEach(c=>{
+    const d=daysDiff(c.relanceDate);
+    if(d<0)groups.late.push(c);else if(d===0)groups.today.push(c);else if(d<=7)groups.soon.push(c);else groups.later.push(c);
+  });
+  const titles={late:'🔴 En retard',today:'🟠 Aujourd\'hui',soon:'Cette semaine',later:'Plus tard'};
+  let html='<h2>À relancer</h2><div class="sub">Le cœur du CRM : personne ne tombe dans l\'oubli. « ✓ Relancée » loggue l\'interaction et te demande la prochaine date.</div>';
+  let any=false;
+  for(const g of['late','today','soon','later']){
+    if(!groups[g].length)continue;any=true;
+    html+='<div class="rel-group '+g+'"><h3>'+titles[g]+' ('+groups[g].length+')</h3>';
+    groups[g].forEach(c=>{
+      html+='<div class="rel-card">'
+      +'<span class="who" onclick="openModal(\''+c.id+'\')">'+tempDot(c.temperature)+esc(c.nom)+'</span>'
+      +'<span class="chip src">'+esc(c.source)+'</span>'
+      +'<span class="chip">'+etLabel(c.etape)+'</span>'
+      +'<span class="note">'+esc(c.relanceNote||c.contexte||'')+'</span>'
+      +'<span class="when">'+fmtD(c.relanceDate)+'</span>'
+      +'<button class="mini done" onclick="markRelanced(\''+c.id+'\')">✓ Relancée</button>'
+      +'<button class="mini" onclick="snooze(\''+c.id+'\',7)">+7j</button>'
+      +'</div>';
+    });
+    html+='</div>';
+  }
+  if(!any)html+='<div class="empty">Aucune relance planifiée. Un prospect sans date de relance est un prospect perdu : ouvre chaque fiche et fixe une date.</div>';
+  el.innerHTML=html;
+}
+function etLabel(k){const f=ETAPES.find(e=>e[0]===k);return f?f[1]:k}
+function markRelanced(id){
+  const c=db.find(x=>x.id===id);if(!c)return;
+  c.interactions=c.interactions||[];
+  c.interactions.push({date:today(),type:'Relance',note:c.relanceNote||''});
+  const next=prompt('Relance loggée. Prochaine relance ? (AAAA-MM-JJ, vide = aucune)','');
+  c.relanceDate=(next&&/^\d{4}-\d{2}-\d{2}$/.test(next))?next:'';
+  save();
+}
+function snooze(id,n){
+  const c=db.find(x=>x.id===id);if(!c)return;
+  const base=daysDiff(c.relanceDate)<0?new Date():new Date(c.relanceDate);
+  base.setDate(base.getDate()+n);
+  c.relanceDate=base.toISOString().slice(0,10);
+  save();
+}
+
+/* ---------- KANBAN ---------- */
+function renderPipe(){
+  const el=document.getElementById('v-pipe');
+  let html='<h2>Pipeline</h2><div class="sub">Glisse les cartes d\'une colonne à l\'autre. Déposer sur « Signée » transforme le prospect en cliente.</div><div class="kanban">';
+  ETAPES.forEach(([k,l])=>{
+    const cards=db.filter(c=>c.etape===k&&(['signee','perdue'].includes(k)||c.statut==='prospect'));
+    html+='<div class="kcol" data-col="'+k+'" ondragover="event.preventDefault();this.classList.add(\'drop-over\')" ondragleave="this.classList.remove(\'drop-over\')" ondrop="onDrop(event,\''+k+'\')">'
+    +'<h3>'+l+'<span>'+cards.length+'</span></h3><div class="kcards">';
+    cards.forEach(c=>{
+      const lateRel=c.relanceDate&&daysDiff(c.relanceDate)<0;
+      html+='<div class="kcard" draggable="true" ondragstart="event.dataTransfer.setData(\'text\',\''+c.id+'\')" onclick="openModal(\''+c.id+'\')">'
+      +'<div class="nm">'+tempDot(c.temperature)+esc(c.nom)+'</div>'
+      +'<div class="meta"><span class="chip src">'+esc(c.source)+'</span>'
+      +(c.motcle?'<span class="chip">'+esc(c.motcle)+'</span>':'')
+      +(lateRel?'<span class="late">⏰ relance en retard</span>':'')
+      +'</div></div>';
+    });
+    html+='</div></div>';
+  });
+  el.innerHTML=html+'</div>';
+}
+function onDrop(ev,col){
+  ev.preventDefault();
+  document.querySelectorAll('.kcol').forEach(x=>x.classList.remove('drop-over'));
+  const id=ev.dataTransfer.getData('text');
+  const c=db.find(x=>x.id===id);if(!c)return;
+  c.etape=col;
+  if(col==='signee'&&!['cliente','alumni'].includes(c.statut)){
+    c.statut='cliente';
+    if(!c.dateDebut)c.dateDebut=today();
+    if(!c.phase)c.phase='1';
+    if(!c.offre)c.offre='premium';
+    c.interactions=c.interactions||[];
+    c.interactions.push({date:today(),type:'Autre',note:'Signée 🎉'});
+    alert(esc(c.nom)+' passe en Cliente active (Premium, phase 1 · Bilan par défaut — ajuste dans sa fiche).');
+  }
+  if(col==='perdue')c.statut='perdue';
+  save();
+}
+
+/* ---------- CONTACTS ---------- */
+let filters={q:'',statut:'',source:'',temp:''};
+function renderContacts(){
+  const el=document.getElementById('v-contacts');
+  const sources=[...new Set(db.map(c=>c.source))].sort();
+  let rows=db.filter(c=>{
+    if(filters.q&&!(c.nom+' '+(c.instagram||'')+' '+(c.contexte||'')).toLowerCase().includes(filters.q.toLowerCase()))return false;
+    if(filters.statut&&c.statut!==filters.statut)return false;
+    if(filters.source&&c.source!==filters.source)return false;
+    if(filters.temp&&c.temperature!==filters.temp)return false;
+    return true;
+  }).sort((a,b)=>lastContact(b).localeCompare(lastContact(a)));
+  el.innerHTML='<h2>Contacts ('+rows.length+')</h2><div class="sub">Tous tes contacts, dernier contact en premier.</div>'
+  +'<div class="toolbar">'
+  +'<input placeholder="Rechercher nom, @insta, contexte…" value="'+esc(filters.q)+'" oninput="filters.q=this.value;renderContacts()">'
+  +'<select onchange="filters.statut=this.value;renderContacts()"><option value="">Statut : tous</option>'+opt('prospect','Prospect',filters.statut)+opt('cliente','Cliente',filters.statut)+opt('alumni','Alumni',filters.statut)+opt('perdue','Perdue',filters.statut)+opt('horscible','Hors cible',filters.statut)+'</select>'
+  +'<select onchange="filters.source=this.value;renderContacts()"><option value="">Source : toutes</option>'+sources.map(s=>opt(s,s,filters.source)).join('')+'</select>'
+  +'<select onchange="filters.temp=this.value;renderContacts()"><option value="">Temp. : toutes</option>'+opt('chaud','🔴 Chaud',filters.temp)+opt('tiede','🟠 Tiède',filters.temp)+opt('froid','🔵 Froid',filters.temp)+'</select>'
+  +'</div>'
+  +(rows.length?'<table><thead><tr><th>Nom</th><th>Statut</th><th>Étape</th><th>Source</th><th>Dernier contact</th><th>Relance</th></tr></thead><tbody>'
+  +rows.map(c=>{
+    const late=c.relanceDate&&daysDiff(c.relanceDate)<0;
+    return '<tr onclick="openModal(\''+c.id+'\')"><td>'+tempDot(c.temperature)+'<b>'+esc(c.nom)+'</b>'+(c.instagram?' <span style="color:var(--muted)">'+esc(c.instagram)+'</span>':'')+'</td>'
+    +'<td>'+statutLabel(c.statut)+'</td><td>'+etLabel(c.etape)+'</td><td><span class="chip src">'+esc(c.source)+'</span></td>'
+    +'<td>'+fmtD(lastContact(c))+'</td><td'+(late?' style="color:var(--bad);font-weight:700"':'')+'>'+fmtD(c.relanceDate)+'</td></tr>';
+  }).join('')+'</tbody></table>':'<div class="empty">Aucun contact ne correspond.</div>');
+}
+function opt(v,l,cur){return '<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(l)+'</option>'}
+function statutLabel(s){return({prospect:'Prospect',cliente:'🟢 Cliente',alumni:'💜 Alumni',perdue:'Perdue',horscible:'Hors cible'})[s]||s}
+
+/* ---------- CLIENTES ---------- */
+function renderClientes(){
+  const el=document.getElementById('v-clientes');
+  const actives=db.filter(c=>c.statut==='cliente');
+  const alumni=db.filter(c=>c.statut==='alumni');
+  function card(c){
+    const m=monthsSince(c.dateDebut);
+    const ph=+(c.phase||expectedPhase(m));
+    const exp=expectedPhase(m);
+    let alert='';
+    if(c.statut==='cliente'&&c.offre!=='continuite'){
+      if(m>=12)alert='<div class="cl-alert m12">M'+m+' — Rituel de fin : document « ton année RECODE » + proposer Continuité.</div>';
+      else if(m>=10)alert='<div class="cl-alert m10">M'+m+' — Fenêtre Continuité ouverte (jamais avant M10). Préparer la transition.</div>';
+      else if(ph<exp)alert='<div class="cl-alert m10">Phase '+ph+' alors que M'+m+' suggère la phase '+exp+' — point à faire ?</div>';
+    }
+    return '<div class="cl-card"><div class="nm" onclick="openModal(\''+c.id+'\')">'+esc(c.nom)+'</div>'
+    +'<div class="of">'+(OFFRES[c.offre]||'Offre non définie')+' · démarré '+fmtD(c.dateDebut)+' · M'+m+'</div>'
+    +(c.offre!=='continuite'?'<div class="phasebar">'+[1,2,3,4,5].map(i=>'<i class="'+(i<=ph?'on':'')+'" title="'+PHASES[i]+'"></i>').join('')+'</div>'
+    +'<div style="font-size:12px;color:var(--muted)">Phase '+ph+' · '+PHASES[ph]+'</div>':'')
+    +alert+'</div>';
+  }
+  el.innerHTML='<h2>Clientes</h2><div class="sub">Parcours 12 mois en 5 phases (V3 §3.2). Les alertes M10/M12 t\'évitent de rater la fenêtre Continuité.</div>'
+  +'<h3 style="margin-bottom:10px">Actives ('+actives.length+')</h3>'
+  +(actives.length?'<div class="cl-grid">'+actives.map(card).join('')+'</div>':'<div class="empty" style="padding:18px">Aucune cliente active dans le CRM.</div>')
+  +'<h3 style="margin-bottom:10px">Continuité / Alumni ('+alumni.length+')</h3>'
+  +(alumni.length?'<div class="cl-grid">'+alumni.map(card).join('')+'</div>':'<div class="empty" style="padding:18px">Personne en Continuité pour l\'instant.</div>');
+}
+
+/* ---------- MODAL ---------- */
+function openModal(id){
+  editingId=id||null;
+  const c=id?db.find(x=>x.id===id):null;
+  draftInteractions=c?JSON.parse(JSON.stringify(c.interactions||[])):[];
+  document.getElementById('mTitle').textContent=c?c.nom:'Nouveau contact';
+  setV('f-nom',c?c.nom:'');setV('f-ig',c?c.instagram:'');setV('f-wa',c?c.whatsapp:'');setV('f-email',c?c.email:'');
+  setV('f-statut',c?c.statut:'prospect');setV('f-source',c?c.source:'Démarchage Instagram');
+  setV('f-temp',c?c.temperature:'froid');setV('f-etape',c?c.etape:'nouveau');
+  setV('f-qualif',c?c.qualif||'aqualifier':'aqualifier');setV('f-motcle',c?c.motcle:'');
+  setV('f-offre',c?c.offre:'');setV('f-debut',c?c.dateDebut:'');setV('f-phase',c?c.phase:'');
+  setV('f-relance',c?c.relanceDate:'');setV('f-relnote',c?c.relanceNote:'');
+  setV('f-contexte',c?c.contexte:'');setV('f-objection',c?c.objection:'');
+  document.getElementById('delBtn').classList.toggle('hidden',!c);
+  renderHist();
+  document.getElementById('overlay').classList.add('open');
+}
+function setV(id,v){document.getElementById(id).value=v||''}
+function gV(id){return document.getElementById(id).value.trim()}
+function closeModal(){document.getElementById('overlay').classList.remove('open');editingId=null}
+function renderHist(){
+  const el=document.getElementById('histList');
+  el.innerHTML=draftInteractions.slice().sort((a,b)=>b.date.localeCompare(a.date))
+    .map(i=>'<div class="hitem"><span class="hd">'+fmtD(i.date)+'</span><span class="ht">'+esc(i.type)+'</span><span>'+esc(i.note)+'</span></div>').join('')
+    ||'<div style="color:var(--muted);font-size:13px">Aucune interaction loggée.</div>';
+}
+function addInteraction(){
+  const note=gV('h-note');
+  draftInteractions.push({date:today(),type:gV('h-type'),note:note});
+  setV('h-note','');renderHist();
+}
+function saveContact(){
+  const nom=gV('f-nom');
+  if(!nom){alert('Le nom est obligatoire.');return}
+  const data={
+    nom,instagram:gV('f-ig'),whatsapp:gV('f-wa'),email:gV('f-email'),
+    statut:gV('f-statut'),source:gV('f-source'),temperature:gV('f-temp'),
+    etape:gV('f-etape'),qualif:gV('f-qualif'),motcle:gV('f-motcle'),
+    offre:gV('f-offre'),dateDebut:gV('f-debut'),phase:gV('f-phase'),
+    relanceDate:gV('f-relance'),relanceNote:gV('f-relnote'),
+    contexte:gV('f-contexte'),objection:gV('f-objection'),
+    interactions:draftInteractions
+  };
+  if(['cliente','alumni'].includes(data.statut)&&!data.dateDebut)data.dateDebut=today();
+  if(data.statut==='alumni')data.offre=data.offre||'continuite';
+  if(editingId){Object.assign(db.find(x=>x.id===editingId),data)}
+  else{data.id=uid();data.createdAt=today();db.push(data)}
+  closeModal();save();
+}
+function deleteContact(){
+  if(!editingId)return;
+  if(!confirm('Supprimer définitivement cette fiche ?'))return;
+  db=db.filter(x=>x.id!==editingId);
+  closeModal();save();
+}
+
+/* ---------- EXPORT / IMPORT ---------- */
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='recode-crm-'+today()+'.json';
+  a.click();
+  localStorage.setItem(LS_EXPORT,Date.now());
+  render();
+}
+function importJSON(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      if(!Array.isArray(data))throw 0;
+      if(db.length===0){db=data;save();alert('Import réussi : '+data.length+' contacts.');return}
+      const merge=confirm('Fichier : '+data.length+' contacts · CRM actuel : '+db.length+' contacts.\n\nOK = FUSIONNER → ajoute les contacts du fichier qui manquent, ne supprime rien.\nAnnuler = REMPLACER → le fichier écrase tout le CRM actuel.');
+      if(merge){
+        const ids=new Set(db.map(c=>c.id));let n=0;
+        data.forEach(c=>{if(!ids.has(c.id)){db.push(c);n++}});
+        save();alert('Fusion : '+n+' contacts ajoutés. Réexporte maintenant pour avoir UN fichier complet à jour.');
+      }else{
+        if(!confirm('Confirmer le REMPLACEMENT des '+db.length+' contacts actuels ?'))return;
+        db=data;save();alert('Remplacement effectué : '+data.length+' contacts.');
+      }
+    }catch(e){alert('Fichier invalide : exporte depuis ce CRM pour avoir le bon format.')}
+  };
+  r.readAsText(f);ev.target.value='';
+}
+
+/* ---------- DEMO ---------- */
+function seedDemo(){
+  if(db.length&&!confirm('Ajouter des données d\'exemple par-dessus tes données ?'))return;
+  const d=(n)=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+  db=db.concat([
+   {id:uid(),createdAt:d(-3),nom:'Marie L.',instagram:'@marie.fit',statut:'prospect',source:'Ressource Instagram',temperature:'chaud',etape:'visio_posee',qualif:'qualifiee',motcle:'HORMONES',relanceDate:d(0),relanceNote:'Confirmer la visio de jeudi',contexte:'SOPK, stagne depuis 8 mois, « j\'ai tout essayé »',objection:'',interactions:[{date:d(-3),type:'MP reçu',note:'A commenté HORMONES'},{date:d(-2),type:'Vocal',note:'15 min, très réceptive'}]},
+   {id:uid(),createdAt:d(-10),nom:'Sophie R.',instagram:'@sosofitlife',statut:'prospect',source:'Réactivation ancienne cliente',temperature:'tiede',etape:'conversation',qualif:'qualifiee',relanceDate:d(-2),relanceNote:'Lui proposer un point 15 min',contexte:'Ancienne cliente 2024, a repris le train-train, plateau',interactions:[{date:d(-10),type:'MP envoyé',note:'Message réactivation perso'},{date:d(-8),type:'MP reçu',note:'Contente d\'avoir des nouvelles'}]},
+   {id:uid(),createdAt:d(-40),nom:'Camille D.',statut:'cliente',source:'Formulaire',temperature:'chaud',etape:'signee',qualif:'qualifiee',offre:'premium',dateDebut:d(-40),phase:'2',contexte:'Aménorrhée hypothalamique, très disciplinée',interactions:[{date:d(-40),type:'Visio',note:'Closing OK'},{date:d(-33),type:'Autre',note:'Welcome pack envoyé'}]},
+   {id:uid(),createdAt:d(-330),nom:'Julie M.',statut:'cliente',source:'Démarchage Instagram',temperature:'chaud',etape:'signee',qualif:'qualifiee',offre:'premium',dateDebut:d(-330),phase:'4',contexte:'Proche de la fin de parcours',interactions:[{date:d(-14),type:'Visio',note:'Bilan hebdo'}]},
+   {id:uid(),createdAt:d(-6),nom:'Laura B.',instagram:'@laurab_lift',statut:'prospect',source:'Welcome DM',temperature:'froid',etape:'nouveau',qualif:'aqualifier',relanceDate:d(3),relanceNote:'Welcome DM envoyé, attendre puis relancer en douceur',interactions:[{date:d(-6),type:'MP envoyé',note:'Welcome DM'}]},
+   {id:uid(),createdAt:d(-25),nom:'Anaïs T.',statut:'perdue',source:'MP entrant Instagram',temperature:'tiede',etape:'perdue',qualif:'qualifiee',contexte:'Visio faite, a trouvé trop cher',objection:'Prix — Starter refusé aussi',interactions:[{date:d(-20),type:'Visio',note:'Pas de closing'}]}
+  ]);
+  save();
+}
+
+render();
+</script>
+</body>
+</html>
