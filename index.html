@@ -130,6 +130,11 @@ tbody tr:hover{background:var(--panel2)}
 .src-li span{color:var(--muted)}
 .linkrow a{color:var(--accent);text-decoration:none;margin-right:14px;font-size:13px;font-weight:600}
 .linkrow a:hover{text-decoration:underline}
+.ai-card{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;margin-bottom:9px}
+.ai-card .ang{font-size:11.5px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.ai-card p{font-size:13.5px;white-space:pre-wrap;margin-bottom:8px}
+.ai-meta{font-size:12.5px;color:var(--muted);margin:10px 0;padding:9px 12px;border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 8px 8px 0}
+.ai-warn{font-size:12.5px;color:#fcd34d;margin:10px 0;padding:9px 12px;border-left:3px solid var(--warn);background:#2a2208;border-radius:0 8px 8px 0}
 .hidden{display:none}
 .note-v3{font-size:11.5px;color:var(--muted);margin-top:6px;font-style:italic}
 </style>
@@ -262,7 +267,8 @@ tbody tr:hover{background:var(--panel2)}
     </div>
     <div class="fg" style="margin-bottom:10px"><label>Contexte (sa situation, ses mots exacts, son blocage)
       <button class="micbtn" type="button" onclick="dictate('f-contexte',this)">🎤 Dicter</button>
-      <button class="micbtn" type="button" onclick="openAI()">🤖 Analyser une conversation Insta</button></label>
+      <button class="micbtn" type="button" onclick="openAI('fiche')">🤖 Analyser une conversation</button>
+      <button class="micbtn" type="button" onclick="openAI('closing')">💬 Coach closing</button></label>
       <textarea id="f-contexte"></textarea></div>
     <div class="fg"><label>Objection / frein <button class="micbtn" type="button" onclick="dictate('f-objection',this)">🎤</button></label><input id="f-objection" placeholder="ex : prix, timing, doit en parler à son conjoint"></div>
     <div class="note-v3">Rappels V3 : note ses mots exacts (script visio 3.4) · hors cible = rediriger, pas convaincre (1.5) · Continuité jamais proposée avant M10.</div>
@@ -290,14 +296,21 @@ tbody tr:hover{background:var(--panel2)}
 
 <div class="overlay" id="aiOverlay" style="z-index:200" onclick="if(event.target===this)closeAI()">
   <div class="modal">
-    <h2>🤖 Analyser une conversation Instagram</h2>
-    <div class="sub">Copie les messages depuis Instagram (version web : sélectionner → copier), colle-les ici. L'analyse remplit automatiquement : contexte, mots exacts, blocage, objection, température et prochaine relance.</div>
+    <h2>🤖 Assistant conversation</h2>
+    <div class="sub">Copie les messages depuis Instagram (version web : sélectionner → copier), colle-les ici, choisis le mode.</div>
     <div class="fg" style="margin-bottom:10px"><label>Conversation collée</label><textarea id="ai-convo" style="min-height:130px" placeholder="Elle : ça fait 8 mois que je stagne...&#10;Moi : ..."></textarea></div>
+    <div class="fg" style="margin-bottom:10px"><label>Mode</label>
+      <select id="ai-mode">
+        <option value="closing">💬 Coach closing — me proposer des réponses</option>
+        <option value="fiche">📋 Analyser — remplir la fiche (contexte, blocage, objection…)</option>
+      </select>
+    </div>
     <div class="mact">
-      <button class="hbtn primary" onclick="aiAnalyze()">Analyser (clé API)</button>
+      <button class="hbtn primary" onclick="aiAnalyze()">Lancer (clé API)</button>
       <button class="hbtn" onclick="aiCopyPrompt()">Sans clé : copier le prompt</button>
       <button class="hbtn" onclick="aiSetKey()">🔑 Clé API</button>
     </div>
+    <div id="ai-out"></div>
     <div class="note-v3" style="margin:8px 0 14px">Avec clé : analyse en 1 clic (clé Anthropic sur console.anthropic.com, ~1 centime par analyse, stockée uniquement dans ce navigateur). Sans clé : le prompt est copié → colle-le dans claude.ai → copie sa réponse → colle-la ci-dessous.</div>
     <div class="fg" style="margin-bottom:10px"><label>Mode sans clé : colle ici la réponse de l'IA</label><textarea id="ai-resp" placeholder='{"resume": "...", ...}'></textarea></div>
     <div class="mact">
@@ -704,11 +717,36 @@ function dictate(id,btn){
 
 /* ---------- ANALYSE IA ---------- */
 const AI_KEY='recode_crm_apikey';
-function openAI(){document.getElementById('aiOverlay').classList.add('open')}
+function openAI(mode){
+  if(mode)setV('ai-mode',mode);
+  document.getElementById('ai-out').innerHTML='';
+  document.getElementById('aiOverlay').classList.add('open');
+}
 function closeAI(){document.getElementById('aiOverlay').classList.remove('open')}
 function aiPrompt(convo){
+  return gV('ai-mode')==='closing'?aiClosingPrompt(convo):aiFichePrompt(convo);
+}
+function aiFichePrompt(convo){
   return 'Analyse cette conversation Instagram entre un coach (coaching musculation/performance pour femmes) et une prospecte. Réponds UNIQUEMENT avec un objet JSON, sans aucun texte autour, avec exactement ces clés :\n'
   +'{"resume":"sa situation en 2-3 phrases","mots_exacts":["2 à 4 citations exactes et marquantes de la prospecte"],"blocage":"son blocage principal","objection":"son objection ou frein, sinon chaîne vide","temperature":"chaud, tiede ou froid selon son niveau d\'intérêt","prochaine_action":"la prochaine action de relance concrète recommandée"}\n\nConversation :\n'+convo;
+}
+function aiClosingPrompt(convo){
+  const fiche='Étape pipeline : '+etLabel(gV('f-etape'))+' · Température : '+gV('f-temp')
+  +(gV('f-contexte')?'\nContexte connu : '+gV('f-contexte'):'')
+  +(gV('f-objection')?'\nObjection connue : '+gV('f-objection'):'');
+  return 'Tu es l\'expert closing d\'un coach sportif (RECODE — coaching musculation/performance féminine, Premium 267 €/mois sur 12 mois). Il discute en MP Instagram avec une prospecte. Propose-lui ses prochaines réponses.\n\n'
+  +'DOCTRINE STRICTE (issue de sa stratégie de vente) :\n'
+  +'- L\'objectif d\'un MP n\'est JAMAIS de vendre l\'offre par écrit : c\'est d\'obtenir une visio de 15-30 min. La vente se fait en visio, pas en DM.\n'
+  +'- Donner la preuve qu\'on sait où chercher, jamais le diagnostic complet : nommer AU PLUS un blocage probable, sans le résoudre ni donner de conseils gratuits détaillés.\n'
+  +'- Une seule question directe par message. Pas de monologue, pas de pavé.\n'
+  +'- Objection prix : ne jamais baisser le prix, ne jamais proposer l\'offre Starter par écrit (down-sell réservé à la visio, décidé par profil, pas par budget). Recentrer sur la visio ou laisser une porte ouverte sans insister.\n'
+  +'- Profil hors cible (débutante complète, TCA clinique actif) : rediriger poliment, ne pas démarcher.\n'
+  +'- Ton : direct, chaleureux, sans flatterie commerciale, sans jargon marketing, quasi pas d\'emojis. Réutiliser ses mots exacts à elle.\n'
+  +'- Si la conversation est mûre (intérêt clair, blocage nommé), proposer la visio franchement : « on fait le point 15 min ? »\n\n'
+  +'FICHE DU CONTACT :\n'+fiche+'\n\n'
+  +'Réponds UNIQUEMENT avec un objet JSON, sans aucun texte autour :\n'
+  +'{"lecture":"où en est cet échange et ce qu\'elle attend, en 2 phrases","objectif":"l\'objectif de la prochaine réponse (1 phrase)","reponses":[{"angle":"nom court de l\'approche","texte":"le message prêt à envoyer, dans le ton décrit"}],"a_eviter":"l\'erreur classique à ne pas commettre à ce stade"}\n'
+  +'Donne 2 à 3 réponses aux angles différents (ex. : question qui creuse, nommer le blocage, proposer la visio).\n\nConversation :\n'+convo;
 }
 function aiSetKey(){
   const k=prompt('Clé API Anthropic (créée sur console.anthropic.com).\nStockée uniquement dans ce navigateur — comme tes données.',localStorage.getItem(AI_KEY)||'');
@@ -744,6 +782,7 @@ function aiApply(txt){
   const m=(txt||'').match(/\{[\s\S]*\}/);
   if(!m){alert('Aucun JSON trouvé dans la réponse. Vérifie que tu as bien copié toute la réponse de l\'IA.');return}
   let d;try{d=JSON.parse(m[0])}catch(e){alert('JSON invalide — recopie la réponse complète.');return}
+  if(d.reponses){renderClosing(d);return}
   const ctx=[
     d.resume||'',
     (d.mots_exacts&&d.mots_exacts.length)?'Ses mots : « '+d.mots_exacts.join(' » · « ')+' »':'',
@@ -758,6 +797,24 @@ function aiApply(txt){
   renderHist();
   setV('ai-convo','');setV('ai-resp','');
   closeAI();
+}
+function renderClosing(d){
+  const out=document.getElementById('ai-out');
+  out.innerHTML='<div class="ai-meta"><b>Lecture :</b> '+esc(d.lecture||'')+'<br><b>Objectif :</b> '+esc(d.objectif||'')+'</div>'
+  +d.reponses.map((r,i)=>'<div class="ai-card"><div class="ang">'+esc(r.angle||('Option '+(i+1)))+'</div><p>'+esc(r.texte||'')+'</p>'
+    +'<button class="mini" onclick="copyResp(this,'+i+')">📋 Copier ce message</button></div>').join('')
+  +(d.a_eviter?'<div class="ai-warn"><b>À éviter ici :</b> '+esc(d.a_eviter)+'</div>':'');
+  out.dataset.resps=JSON.stringify(d.reponses.map(r=>r.texte||''));
+  if(out.scrollIntoView)out.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function copyResp(btn,i){
+  const resps=JSON.parse(document.getElementById('ai-out').dataset.resps||'[]');
+  navigator.clipboard.writeText(resps[i]||'').then(()=>{
+    btn.textContent='✓ Copié';
+    setTimeout(()=>{btn.textContent='📋 Copier ce message'},1500);
+    draftInteractions.push({date:today(),type:'MP envoyé',note:'Réponse coach closing : '+(resps[i]||'').slice(0,60)+'…'});
+    renderHist();
+  });
 }
 
 /* ---------- DEMO ---------- */
