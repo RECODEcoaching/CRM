@@ -120,6 +120,16 @@ tbody tr:hover{background:var(--panel2)}
 .haddrow select{width:130px}
 .haddrow input{flex:1;min-width:150px}
 .empty{color:var(--muted);text-align:center;padding:34px;font-size:13.5px}
+.micbtn{background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11.5px;padding:1px 7px;margin-left:7px;color:var(--txt);vertical-align:-1px}
+.micbtn:hover{border-color:var(--accent)}
+.micbtn.recing{border-color:var(--bad);background:#3a1212;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.5}}
+.src-li{padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.src-li:last-child{border:none}
+.src-li b{display:block;margin-bottom:2px}
+.src-li span{color:var(--muted)}
+.linkrow a{color:var(--accent);text-decoration:none;margin-right:14px;font-size:13px;font-weight:600}
+.linkrow a:hover{text-decoration:underline}
 .hidden{display:none}
 .note-v3{font-size:11.5px;color:var(--muted);margin-top:6px;font-style:italic}
 </style>
@@ -133,6 +143,7 @@ tbody tr:hover{background:var(--panel2)}
     <button data-v="pipe">Pipeline</button>
     <button data-v="contacts">Contacts</button>
     <button data-v="clientes">Clientes</button>
+    <button data-v="sourcing">Sourcing</button>
   </nav>
   <div class="spacer"></div>
   <button class="hbtn" onclick="exportJSON()">⬇ Export</button>
@@ -147,6 +158,7 @@ tbody tr:hover{background:var(--panel2)}
   <section id="v-pipe" class="hidden"></section>
   <section id="v-contacts" class="hidden"></section>
   <section id="v-clientes" class="hidden"></section>
+  <section id="v-sourcing" class="hidden"></section>
 </main>
 
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
@@ -246,10 +258,13 @@ tbody tr:hover{background:var(--panel2)}
     </div>
     <div class="frow">
       <div class="fg"><label>Prochaine relance</label><input type="date" id="f-relance"></div>
-      <div class="fg"><label>Note de relance (quoi dire)</label><input id="f-relnote" placeholder="ex : revenir sur sa visio, proposer un point 15 min"></div>
+      <div class="fg"><label>Note de relance (quoi dire) <button class="micbtn" type="button" onclick="dictate('f-relnote',this)">🎤</button></label><input id="f-relnote" placeholder="ex : revenir sur sa visio, proposer un point 15 min"></div>
     </div>
-    <div class="fg" style="margin-bottom:10px"><label>Contexte (sa situation, ses mots exacts, son blocage)</label><textarea id="f-contexte"></textarea></div>
-    <div class="fg"><label>Objection / frein</label><input id="f-objection" placeholder="ex : prix, timing, doit en parler à son conjoint"></div>
+    <div class="fg" style="margin-bottom:10px"><label>Contexte (sa situation, ses mots exacts, son blocage)
+      <button class="micbtn" type="button" onclick="dictate('f-contexte',this)">🎤 Dicter</button>
+      <button class="micbtn" type="button" onclick="openAI()">🤖 Analyser une conversation Insta</button></label>
+      <textarea id="f-contexte"></textarea></div>
+    <div class="fg"><label>Objection / frein <button class="micbtn" type="button" onclick="dictate('f-objection',this)">🎤</button></label><input id="f-objection" placeholder="ex : prix, timing, doit en parler à son conjoint"></div>
     <div class="note-v3">Rappels V3 : note ses mots exacts (script visio 3.4) · hors cible = rediriger, pas convaincre (1.5) · Continuité jamais proposée avant M10.</div>
     <div class="hist" id="histBlock">
       <h3>Historique d'interactions</h3>
@@ -260,6 +275,7 @@ tbody tr:hover{background:var(--panel2)}
           <option>Visio</option><option>Relance</option><option>Story / réaction</option><option>Autre</option>
         </select>
         <input id="h-note" placeholder="Note courte…">
+        <button class="mini" type="button" onclick="dictate('h-note',this)">🎤</button>
         <button class="mini" onclick="addInteraction()">Ajouter</button>
       </div>
     </div>
@@ -269,6 +285,26 @@ tbody tr:hover{background:var(--panel2)}
       <div class="spacer"></div>
       <button class="danger hidden" id="delBtn" onclick="deleteContact()">Supprimer</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="aiOverlay" style="z-index:200" onclick="if(event.target===this)closeAI()">
+  <div class="modal">
+    <h2>🤖 Analyser une conversation Instagram</h2>
+    <div class="sub">Copie les messages depuis Instagram (version web : sélectionner → copier), colle-les ici. L'analyse remplit automatiquement : contexte, mots exacts, blocage, objection, température et prochaine relance.</div>
+    <div class="fg" style="margin-bottom:10px"><label>Conversation collée</label><textarea id="ai-convo" style="min-height:130px" placeholder="Elle : ça fait 8 mois que je stagne...&#10;Moi : ..."></textarea></div>
+    <div class="mact">
+      <button class="hbtn primary" onclick="aiAnalyze()">Analyser (clé API)</button>
+      <button class="hbtn" onclick="aiCopyPrompt()">Sans clé : copier le prompt</button>
+      <button class="hbtn" onclick="aiSetKey()">🔑 Clé API</button>
+    </div>
+    <div class="note-v3" style="margin:8px 0 14px">Avec clé : analyse en 1 clic (clé Anthropic sur console.anthropic.com, ~1 centime par analyse, stockée uniquement dans ce navigateur). Sans clé : le prompt est copié → colle-le dans claude.ai → copie sa réponse → colle-la ci-dessous.</div>
+    <div class="fg" style="margin-bottom:10px"><label>Mode sans clé : colle ici la réponse de l'IA</label><textarea id="ai-resp" placeholder='{"resume": "...", ...}'></textarea></div>
+    <div class="mact">
+      <button class="hbtn primary" onclick="aiApply(document.getElementById('ai-resp').value)">Appliquer à la fiche</button>
+      <button class="hbtn" onclick="closeAI()">Fermer</button>
+    </div>
+    <div class="note-v3" id="ai-status"></div>
   </div>
 </div>
 
@@ -302,7 +338,7 @@ document.getElementById('nav').addEventListener('click',e=>{
   document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x===b));
   render();
 });
-function show(id){['dash','rel','pipe','contacts','clientes'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==id))}
+function show(id){['dash','rel','pipe','contacts','clientes','sourcing'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==id))}
 
 /* ---------- RENDER ---------- */
 function render(){
@@ -313,6 +349,7 @@ function render(){
   if(view==='pipe')renderPipe();
   if(view==='contacts')renderContacts();
   if(view==='clientes')renderClientes();
+  if(view==='sourcing')renderSourcing();
 }
 function relancesDues(){return db.filter(c=>c.relanceDate&&daysDiff(c.relanceDate)<=0&&!['perdue','horscible'].includes(c.statut))}
 function renderBadge(){
@@ -607,6 +644,120 @@ function importJSON(ev){
     }catch(e){alert('Fichier invalide : exporte depuis ce CRM pour avoir le bon format.')}
   };
   r.readAsText(f);ev.target.value='';
+}
+
+/* ---------- SOURCING ---------- */
+function renderSourcing(){
+  const el=document.getElementById('v-sourcing');
+  el.innerHTML='<h2>Sourcing Instagram</h2>'
+  +'<div class="sub">Pas de collecte automatique : Instagram la détecte et bannit les comptes — ton compte est ton business, le risque est disproportionné. À la place : 20 min de chasse manuelle, critères stricts, ajout en 2 clics.</div>'
+  +'<div class="grid2">'
+  +'<div class="panel"><h3>Où chercher (par rendement décroissant)</h3>'
+  +'<div class="src-li"><b>1. Tes propres signaux</b><span>Celles qui ont demandé une ressource (BILAN, HORMONES…) sans MP ensuite · réponses « faire plus » à tes sondages story · nouvelles abonnées actives → Welcome DM.</span></div>'
+  +'<div class="src-li"><b>2. Commentatrices de la concurrence FR</b><span>@fitbychloe et autres coachs femmes FR : celles qui commentent des questions précises (plateau, hormones, diète) sont en recherche active.</span></div>'
+  +'<div class="src-li"><b>3. Commentaires des gros comptes science</b><span>Femmes francophones qui commentent les posts evidence-based : profil intermédiaire/éduqué = ton avatar.</span></div>'
+  +'<div class="src-li"><b>4. Hashtags FR</b><span>Le moins rentable mais utile : profils récents et actifs uniquement.</span></div>'
+  +'<div class="linkrow" style="margin-top:10px">'
+  +'<a href="https://www.instagram.com/fitbychloe/" target="_blank">@fitbychloe</a>'
+  +'<a href="https://www.instagram.com/explore/tags/musculationfemme/" target="_blank">#musculationfemme</a>'
+  +'<a href="https://www.instagram.com/explore/tags/fitnessfemme/" target="_blank">#fitnessfemme</a>'
+  +'<a href="https://www.instagram.com/explore/tags/pertedepoids/" target="_blank">#pertedepoids</a>'
+  +'</div></div>'
+  +'<div class="panel"><h3>Filtre avatar — V3 §1.5 (30 secondes par profil)</h3>'
+  +'<div class="src-li"><b>✅ Tu ajoutes au CRM si :</b><span>femme ≈27-38 ans · 2-3+ ans de muscu visible (salle, progression, vocabulaire) · signes de plateau ou frustration · compte actif récemment.</span></div>'
+  +'<div class="src-li"><b>❌ Tu passes ton chemin si :</b><span>débutante complète (un programme de base lui suffit) · TCA visible (tu rediriges, tu ne démarches pas) · cherche juste « un programme » · compte inactif.</span></div>'
+  +'<div class="src-li"><b>Règle de volume</b><span>5-10 profils qualifiés ajoutés par session, pas 50. Un MP personnalisé à une bonne cible vaut 20 MP copiés-collés — et les MP en masse font aussi bannir.</span></div>'
+  +'<div style="margin-top:14px"><button class="hbtn primary" onclick="quickAdd()">＋ Ajouter une prospecte trouvée</button></div>'
+  +'</div></div>';
+}
+function quickAdd(){
+  openModal();
+  setV('f-source','Démarchage Instagram');
+  setV('f-temp','froid');
+  const d=new Date();d.setDate(d.getDate()+2);
+  setV('f-relance',d.toISOString().slice(0,10));
+  setV('f-relnote','Premier MP personnalisé à envoyer');
+}
+
+/* ---------- DICTÉE ---------- */
+let rec=null;
+function dictate(id,btn){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Dictée non supportée par ce navigateur — utilise Chrome ou Edge.\n\nAlternative immédiate : la dictée système dans n\'importe quel champ (Windows : Win+H · Mac : double appui sur Fn ou touche micro).');return}
+  if(rec){rec.stop();return}
+  rec=new SR();rec.lang='fr-FR';rec.continuous=true;rec.interimResults=false;
+  const target=document.getElementById(id);
+  const orig=btn.textContent;
+  btn.classList.add('recing');btn.textContent='⏹ Stop';
+  rec.onresult=e=>{
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal){
+        const t=e.results[i][0].transcript.trim();
+        target.value=(target.value?target.value+' ':'')+t;
+      }
+    }
+  };
+  rec.onend=()=>{rec=null;btn.classList.remove('recing');btn.textContent=orig};
+  rec.onerror=ev=>{if(ev.error==='not-allowed')alert('Autorise le micro pour ce site (icône dans la barre d\'adresse).')};
+  rec.start();
+}
+
+/* ---------- ANALYSE IA ---------- */
+const AI_KEY='recode_crm_apikey';
+function openAI(){document.getElementById('aiOverlay').classList.add('open')}
+function closeAI(){document.getElementById('aiOverlay').classList.remove('open')}
+function aiPrompt(convo){
+  return 'Analyse cette conversation Instagram entre un coach (coaching musculation/performance pour femmes) et une prospecte. Réponds UNIQUEMENT avec un objet JSON, sans aucun texte autour, avec exactement ces clés :\n'
+  +'{"resume":"sa situation en 2-3 phrases","mots_exacts":["2 à 4 citations exactes et marquantes de la prospecte"],"blocage":"son blocage principal","objection":"son objection ou frein, sinon chaîne vide","temperature":"chaud, tiede ou froid selon son niveau d\'intérêt","prochaine_action":"la prochaine action de relance concrète recommandée"}\n\nConversation :\n'+convo;
+}
+function aiSetKey(){
+  const k=prompt('Clé API Anthropic (créée sur console.anthropic.com).\nStockée uniquement dans ce navigateur — comme tes données.',localStorage.getItem(AI_KEY)||'');
+  if(k!==null)localStorage.setItem(AI_KEY,k.trim());
+}
+function aiCopyPrompt(){
+  const c=gV('ai-convo');
+  if(!c){alert('Colle d\'abord la conversation.');return}
+  navigator.clipboard.writeText(aiPrompt(c)).then(()=>{
+    alert('Prompt copié.\n1. Colle-le dans claude.ai (ou ChatGPT)\n2. Copie la réponse JSON\n3. Colle-la dans le champ du dessous → Appliquer');
+  });
+}
+async function aiAnalyze(){
+  const key=localStorage.getItem(AI_KEY);
+  if(!key){alert('Pas de clé enregistrée. Clique sur 🔑 Clé API, ou utilise le mode sans clé.');return}
+  const convo=gV('ai-convo');
+  if(!convo){alert('Colle d\'abord la conversation.');return}
+  const st=document.getElementById('ai-status');
+  st.textContent='Analyse en cours…';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,messages:[{role:'user',content:aiPrompt(convo)}]})
+    });
+    const j=await r.json();
+    if(j.error)throw new Error(j.error.message);
+    st.textContent='';
+    aiApply(j.content[0].text);
+  }catch(e){st.textContent='Erreur : '+e.message}
+}
+function aiApply(txt){
+  const m=(txt||'').match(/\{[\s\S]*\}/);
+  if(!m){alert('Aucun JSON trouvé dans la réponse. Vérifie que tu as bien copié toute la réponse de l\'IA.');return}
+  let d;try{d=JSON.parse(m[0])}catch(e){alert('JSON invalide — recopie la réponse complète.');return}
+  const ctx=[
+    d.resume||'',
+    (d.mots_exacts&&d.mots_exacts.length)?'Ses mots : « '+d.mots_exacts.join(' » · « ')+' »':'',
+    d.blocage?'Blocage : '+d.blocage:''
+  ].filter(Boolean).join('\n');
+  const cur=gV('f-contexte');
+  setV('f-contexte',cur?cur+'\n---\n'+ctx:ctx);
+  if(d.objection)setV('f-objection',d.objection);
+  if(['chaud','tiede','froid'].includes(d.temperature))setV('f-temp',d.temperature);
+  if(d.prochaine_action&&!gV('f-relnote'))setV('f-relnote',d.prochaine_action);
+  draftInteractions.push({date:today(),type:'MP reçu',note:'Conversation analysée par IA'});
+  renderHist();
+  setV('ai-convo','');setV('ai-resp','');
+  closeAI();
 }
 
 /* ---------- DEMO ---------- */
