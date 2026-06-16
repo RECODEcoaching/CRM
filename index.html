@@ -137,6 +137,12 @@ tbody tr:hover{background:var(--panel2)}
 .ai-warn{font-size:12.5px;color:#fcd34d;margin:10px 0;padding:9px 12px;border-left:3px solid var(--warn);background:#2a2208;border-radius:0 8px 8px 0}
 .hidden{display:none}
 .note-v3{font-size:11.5px;color:var(--muted);margin-top:6px;font-style:italic}
+.reflag-icon{margin-left:5px;font-size:12.5px;vertical-align:1px;cursor:help}
+.reflag-toggle{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:10px 13px;margin-bottom:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);user-select:none}
+.reflag-toggle:hover{border-color:var(--tiede)}
+.reflag-toggle.on{border-color:var(--tiede);color:#fcd34d;background:#2a2208}
+.reflag-toggle .box{font-size:16px;line-height:1}
+.reflag-toggle small{font-weight:500;color:var(--muted);font-style:italic}
 </style>
 </head>
 <body>
@@ -265,6 +271,10 @@ tbody tr:hover{background:var(--panel2)}
       <div class="fg"><label>Prochaine relance</label><input type="date" id="f-relance"></div>
       <div class="fg"><label>Note de relance (quoi dire) <button class="micbtn" type="button" onclick="dictate('f-relnote',this)">🎤</button></label><input id="f-relnote" placeholder="ex : revenir sur sa visio, proposer un point 15 min"></div>
     </div>
+    <div class="reflag-toggle" id="reflagToggle" onclick="toggleReflag()">
+      <span class="box">🔍</span>
+      <span>À recreuser avant de la recontacter <small id="reflagState">— désactivé</small></span>
+    </div>
     <div class="fg" style="margin-bottom:10px"><label>Contexte (sa situation, ses mots exacts, son blocage)
       <button class="micbtn" type="button" onclick="dictate('f-contexte',this)">🎤 Dicter</button>
       <button class="micbtn" type="button" onclick="openAI('fiche')">🤖 Analyser une conversation</button>
@@ -330,7 +340,7 @@ const ETAPES=[
 ];
 const PHASES={1:'Bilan',2:'Stabilisation',3:'Optimisation',4:'Autonomie',5:'Maîtrise'};
 const OFFRES={premium:'Premium 267 €',starter:'Starter 197 €',continuite:'Continuité 97 €'};
-let db=load(), editingId=null, draftInteractions=[], view='dash';
+let db=load(), editingId=null, draftInteractions=[], draftReflag=false, view='dash';
 
 function load(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[]}catch(e){return[]}}
 function save(){localStorage.setItem(LS_KEY,JSON.stringify(db));render()}
@@ -342,6 +352,7 @@ function daysDiff(d){return Math.floor((new Date(d)-new Date(today()))/864e5)}
 function monthsSince(d){if(!d)return 0;const a=new Date(d),b=new Date();return Math.max(0,(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth())+(b.getDate()>=a.getDate()?0:-1))+1}
 function expectedPhase(m){if(m<=1)return 1;if(m<=3)return 2;if(m<=7)return 3;if(m<=11)return 4;return 5}
 function tempDot(t){return '<span class="temp-dot t-'+t+'"></span>'}
+function reflagIcon(c){return c.recontexte?'<span class="reflag-icon" title="À recreuser : revoir son contexte avant de la recontacter">🔍</span>':''}
 function lastContact(c){const ds=(c.interactions||[]).map(i=>i.date).sort();return ds.length?ds[ds.length-1]:c.createdAt}
 
 /* ---------- NAV ---------- */
@@ -394,6 +405,7 @@ function renderDash(){
   const actives=db.filter(c=>c.statut==='cliente').length;
   const alumni=db.filter(c=>c.statut==='alumni').length;
   const late=relancesDues().length;
+  const aRecreuser=db.filter(c=>c.recontexte&&!['perdue','horscible'].includes(c.statut)).length;
 
   let funnel='';
   ETAPES.forEach(([k,l])=>{
@@ -416,6 +428,7 @@ function renderDash(){
   +kpi(closing===null?'—':closing+' %','Taux de closing','cible V3 : 30-40 % — sur '+closDecided.length+' visios décidées')
   +kpi(actives+(alumni?' +'+alumni:''),'Clientes actives',alumni?alumni+' en Continuité':'Premium + Starter')
   +kpi(late,'Relances en retard',late>0?'va dans l\'onglet À relancer':'tout est à jour',late>0)
+  +kpi('🔍 '+aRecreuser,'Contextes à recreuser',aRecreuser>0?'filtre 🔍 dans Contacts avant de les recontacter':'rien à recreuser')
   +'</div>'
   +'<div class="grid2"><div class="panel"><h3>Tunnel — où ça fuit ?</h3>'+funnel
   +'<div class="note-v3">Règle V3 : si les conversations s\'ouvrent mais que les visios ne closent pas, le problème est dans la visio (script 3.4), pas dans le contenu.</div></div>'
@@ -442,7 +455,7 @@ function renderRel(){
     html+='<div class="rel-group '+g+'"><h3>'+titles[g]+' ('+groups[g].length+')</h3>';
     groups[g].forEach(c=>{
       html+='<div class="rel-card">'
-      +'<span class="who" onclick="openModal(\''+c.id+'\')">'+tempDot(c.temperature)+esc(c.nom)+'</span>'
+      +'<span class="who" onclick="openModal(\''+c.id+'\')">'+tempDot(c.temperature)+esc(c.nom)+reflagIcon(c)+'</span>'
       +'<span class="chip src">'+esc(c.source)+'</span>'
       +'<span class="chip">'+etLabel(c.etape)+'</span>'
       +'<span class="note">'+esc(c.relanceNote||c.contexte||'')+'</span>'
@@ -484,7 +497,7 @@ function renderPipe(){
     cards.forEach(c=>{
       const lateRel=c.relanceDate&&daysDiff(c.relanceDate)<0;
       html+='<div class="kcard" draggable="true" ondragstart="event.dataTransfer.setData(\'text\',\''+c.id+'\')" onclick="openModal(\''+c.id+'\')">'
-      +'<div class="nm">'+tempDot(c.temperature)+esc(c.nom)+'</div>'
+      +'<div class="nm">'+tempDot(c.temperature)+esc(c.nom)+reflagIcon(c)+'</div>'
       +'<div class="meta"><span class="chip src">'+esc(c.source)+'</span>'
       +(c.motcle?'<span class="chip">'+esc(c.motcle)+'</span>':'')
       +(lateRel?'<span class="late">⏰ relance en retard</span>':'')
@@ -514,7 +527,7 @@ function onDrop(ev,col){
 }
 
 /* ---------- CONTACTS ---------- */
-let filters={q:'',statut:'',source:'',temp:''};
+let filters={q:'',statut:'',source:'',temp:'',reflag:''};
 function renderContacts(){
   const el=document.getElementById('v-contacts');
   const sources=[...new Set(db.map(c=>c.source))].sort();
@@ -523,6 +536,7 @@ function renderContacts(){
     if(filters.statut&&c.statut!==filters.statut)return false;
     if(filters.source&&c.source!==filters.source)return false;
     if(filters.temp&&c.temperature!==filters.temp)return false;
+    if(filters.reflag&&!c.recontexte)return false;
     return true;
   }).sort((a,b)=>lastContact(b).localeCompare(lastContact(a)));
   el.innerHTML='<h2>Contacts ('+rows.length+')</h2><div class="sub">Tous tes contacts, dernier contact en premier.</div>'
@@ -531,11 +545,12 @@ function renderContacts(){
   +'<select onchange="filters.statut=this.value;renderContacts()"><option value="">Statut : tous</option>'+opt('prospect','Prospect',filters.statut)+opt('cliente','Cliente',filters.statut)+opt('alumni','Alumni',filters.statut)+opt('perdue','Perdue',filters.statut)+opt('horscible','Hors cible',filters.statut)+'</select>'
   +'<select onchange="filters.source=this.value;renderContacts()"><option value="">Source : toutes</option>'+sources.map(s=>opt(s,s,filters.source)).join('')+'</select>'
   +'<select onchange="filters.temp=this.value;renderContacts()"><option value="">Temp. : toutes</option>'+opt('chaud','🔴 Chaud',filters.temp)+opt('tiede','🟠 Tiède',filters.temp)+opt('froid','🔵 Froid',filters.temp)+'</select>'
+  +'<select onchange="filters.reflag=this.value;renderContacts()"><option value="">🔍 : tous</option>'+opt('1','🔍 À recreuser',filters.reflag)+'</select>'
   +'</div>'
   +(rows.length?'<table><thead><tr><th>Nom</th><th>Statut</th><th>Étape</th><th>Source</th><th>Dernier contact</th><th>Relance</th></tr></thead><tbody>'
   +rows.map(c=>{
     const late=c.relanceDate&&daysDiff(c.relanceDate)<0;
-    return '<tr onclick="openModal(\''+c.id+'\')"><td>'+tempDot(c.temperature)+'<b>'+esc(c.nom)+'</b>'+(c.instagram?' <span style="color:var(--muted)">'+esc(c.instagram)+'</span>':'')+'</td>'
+    return '<tr onclick="openModal(\''+c.id+'\')"><td>'+tempDot(c.temperature)+'<b>'+esc(c.nom)+'</b>'+reflagIcon(c)+(c.instagram?' <span style="color:var(--muted)">'+esc(c.instagram)+'</span>':'')+'</td>'
     +'<td>'+statutLabel(c.statut)+'</td><td>'+etLabel(c.etape)+'</td><td><span class="chip src">'+esc(c.source)+'</span></td>'
     +'<td>'+fmtD(lastContact(c))+'</td><td'+(late?' style="color:var(--bad);font-weight:700"':'')+'>'+fmtD(c.relanceDate)+'</td></tr>';
   }).join('')+'</tbody></table>':'<div class="empty">Aucun contact ne correspond.</div>');
@@ -558,7 +573,7 @@ function renderClientes(){
       else if(m>=10)alert='<div class="cl-alert m10">M'+m+' — Fenêtre Continuité ouverte (jamais avant M10). Préparer la transition.</div>';
       else if(ph<exp)alert='<div class="cl-alert m10">Phase '+ph+' alors que M'+m+' suggère la phase '+exp+' — point à faire ?</div>';
     }
-    return '<div class="cl-card"><div class="nm" onclick="openModal(\''+c.id+'\')">'+esc(c.nom)+'</div>'
+    return '<div class="cl-card"><div class="nm" onclick="openModal(\''+c.id+'\')">'+esc(c.nom)+reflagIcon(c)+'</div>'
     +'<div class="of">'+(OFFRES[c.offre]||'Offre non définie')+' · démarré '+fmtD(c.dateDebut)+' · M'+m+'</div>'
     +(c.offre!=='continuite'?'<div class="phasebar">'+[1,2,3,4,5].map(i=>'<i class="'+(i<=ph?'on':'')+'" title="'+PHASES[i]+'"></i>').join('')+'</div>'
     +'<div style="font-size:12px;color:var(--muted)">Phase '+ph+' · '+PHASES[ph]+'</div>':'')
@@ -584,11 +599,18 @@ function openModal(id){
   setV('f-offre',c?c.offre:'');setV('f-debut',c?c.dateDebut:'');setV('f-phase',c?c.phase:'');
   setV('f-relance',c?c.relanceDate:'');setV('f-relnote',c?c.relanceNote:'');
   setV('f-contexte',c?c.contexte:'');setV('f-objection',c?c.objection:'');
+  draftReflag=c?!!c.recontexte:false;renderReflag();
   document.getElementById('delBtn').classList.toggle('hidden',!c);
   renderHist();
   document.getElementById('overlay').classList.add('open');
 }
 function setV(id,v){document.getElementById(id).value=v||''}
+function toggleReflag(){draftReflag=!draftReflag;renderReflag()}
+function renderReflag(){
+  const t=document.getElementById('reflagToggle');
+  t.classList.toggle('on',draftReflag);
+  document.getElementById('reflagState').textContent=draftReflag?'— activé':'— désactivé';
+}
 function gV(id){return document.getElementById(id).value.trim()}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editingId=null}
 function renderHist(){
@@ -612,6 +634,7 @@ function saveContact(){
     offre:gV('f-offre'),dateDebut:gV('f-debut'),phase:gV('f-phase'),
     relanceDate:gV('f-relance'),relanceNote:gV('f-relnote'),
     contexte:gV('f-contexte'),objection:gV('f-objection'),
+    recontexte:draftReflag,
     interactions:draftInteractions
   };
   if(['cliente','alumni'].includes(data.statut)&&!data.dateDebut)data.dateDebut=today();
